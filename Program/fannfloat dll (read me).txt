@@ -1,0 +1,4 @@
+fannfloat.dll jest czêœci¹ TfannNetwork autorstwa Mauricio Pereira Maia
+fannfloat.dll is a part of the TfannNetwork by Mauricio Pereira Maia
+mauriciocpa@gmail.com
+fann.sourceforge.net
