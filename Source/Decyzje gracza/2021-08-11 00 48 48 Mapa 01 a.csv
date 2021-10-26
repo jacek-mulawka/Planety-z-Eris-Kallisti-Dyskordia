@@ -1,0 +1,6 @@
+id_planeta;planeta jest planet¹ docelow¹;planeta nale¿y do gracza;id_planeta_docelowa;grupa_zdobywaj¹ca_planetê;odleg³oœæ;planety_iloœæ_mapa;planety_posiadane_procent;przejmowanie_poziom_aktualny;przyrost_szybkoœæ;rakiety_iloœæ_procent_wys³anie;rakiety_na_orbicie_iloœæ__obce;rakiety_na_orbicie_iloœæ__w³asne;wielkoœæ;
+1;1;0;1;0;100,0000;2,0000;50,0000;100,0000;52,3810;100;10;16;12,5000;
+2;0;1;1;0;0,0000;2,0000;50,0000;100,0000;100,0000;100;0;16;100,0000;
+--- 2 ---
+1;1;0;1;0;100,0000;2,0000;50,0000;78,6667;52,3810;100;1;10;12,5000;
+2;0;1;1;0;0,0000;2,0000;50,0000;100,0000;100,0000;100;0;10;100,0000;

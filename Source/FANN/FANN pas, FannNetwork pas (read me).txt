@@ -1,0 +1,4 @@
+FANN.pas, FannNetwork.pas s¹ czêœci¹ TfannNetwork autorstwa Mauricio Pereira Maia
+FANN.pas, FannNetwork.pas are parts of the TfannNetwork by Mauricio Pereira Maia
+mauriciocpa@gmail.com
+fann.sourceforge.net

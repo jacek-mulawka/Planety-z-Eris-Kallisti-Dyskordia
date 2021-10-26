@@ -1,0 +1,10 @@
+Planety z Eris Kallisti Dyskordia
+wersja 2021.10.26.
+
+MIT License
+
+Copyright (c) 2021 Jacek Mulawka
+
+j.mulawka@interia.pl
+
+https://github.com/jacek-mulawka
