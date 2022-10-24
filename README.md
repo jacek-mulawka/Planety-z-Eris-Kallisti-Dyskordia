@@ -9,6 +9,8 @@ Gra zawiera wbudowany mechanizm pozwalający, na podstawie podejmowanych podczas
 Gra zawiera uproszczone tłumaczenia na kilka wersji językowych.
 
 
+## English
+
 A game of taking over planets. When a planet belongs to one of the groups participating in the game, from time to time new rockets are produced in its orbit until the planet's orbit is full. Rockets can be sent to neutral or hostile planets for capture, or to home planets to strengthen their defenses. Rockets battles take place automatically, mainly in planetary orbits, but rockets can also fight each other when they fly close to each other.
 The more rockets a planet conquers, the shorter it takes to acquire. The larger the planet, the more time it takes to conquer it, but also (most often) more rockets will fit into its orbit.
 On some planets, rocket production is faster.
