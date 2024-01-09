@@ -11,6 +11,9 @@ unit Planety;{12.Cze.2021}
   //
 
 
+  // Wydanie 2.0.0.0 - aktualizacja GLScene z 1.6.0.7082 na 2.2 2023.
+
+
   // Kierunki wspó³rzêdnych uk³adu g³ównego.
   //
   //     góra y
@@ -31,17 +34,21 @@ unit Planety;{12.Cze.2021}
 
   // Wersja gry fann i bez fann.
 
-
 {$I Definicje.inc}
 
 interface
 
 uses
+  GLS.ThorFX,
+  GLS.VectorTypes,
+
+
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics, Vcl.Controls,
   Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Buttons, Vcl.Samples.Spin, Vcl.CheckLst,
-  GLWin32Viewer, GLObjects, GLScene, GLCoordinates, GLCrossPlatform, GLBaseClasses, GLNavigator, GLCadencer, GLSkydome, GLGeomObjects, GLAtmosphere, GLSpaceText,
-  GLKeyboard, GLColor, GLVectorGeometry, GLThorFX, GLMaterial,
-  System.IOUtils, Xml.XMLDoc, Xml.XMLIntf, Math, System.DateUtils, GLBitmapFont, GLWindowsFont, GLHUDObjects
+
+  GLS.SceneViewer, GLS.Objects, GLS.Scene, GLS.Coordinates, GLS.BaseClasses, GLS.Navigator, GLS.Cadencer, GLS.SkyDome,
+  GLS.GeomObjects, GLS.Atmosphere, GLS.SpaceText, GLS.BitmapFont, GLS.WindowsFont, GLS.HUDObjects
+
   {$IFDEF si_fann_u¿ywaj}
   , FannNetwork
   {$ENDIF}
@@ -50,7 +57,7 @@ uses
 type
   TKolor_Grupa_r = record
     id_grupa : integer;
-    kolor_vector : TVector;
+    kolor_vector : GLS.VectorTypes.TVector4f;
   end;//---//TKolor_Grupa_r
 
   TPlaneta = class( TGLDummyCube )
@@ -99,7 +106,7 @@ type
       id_grupa
         : integer;
 
-      planeta_docelowa_wspó³rzêdne_na_orbicie : TVector; // Wspó³rzêdne na orbicie docelowej aby rakiety nie przybywa³y wszystkie w to samo miejsce.
+      planeta_docelowa_wspó³rzêdne_na_orbicie : GLS.VectorTypes.TVector4f; // Wspó³rzêdne na orbicie docelowej aby rakiety nie przybywa³y wszystkie w to samo miejsce.
 
       planeta_docelowa : TPlaneta;
 
@@ -121,10 +128,10 @@ type
 
       utworzenie_czas : double;
 
-      gl_thor_fx_manager : TGLThorFXManager;
+      gl_thor_fx_manager : GLS.ThorFX.TGLThorFXManager;
   public
     { Public declarations }
-    constructor Create( pozycja_rakieta_f : TVector; const id_grupa_f : integer );
+    constructor Create( pozycja_rakieta_f : GLS.VectorTypes.TVector4f; const id_grupa_f : integer );
     destructor Destroy(); override;
   end;//---//TWalka_Efekt
 
@@ -290,7 +297,7 @@ type
     walka_efekt_list
       : TList;
 
-    kamera_pozycja_pocz¹tkowa_g : TVector;
+    kamera_pozycja_pocz¹tkowa_g : GLS.VectorTypes.TVector4f;
 
     ostatni_ruch_ponów__planeta_docelowa__1,
     ostatni_ruch_ponów__planeta_docelowa__2,
@@ -323,7 +330,7 @@ type
     procedure Rakiety_Cel_Ustaw( const id_grupa_f : integer; id_planeta_z_s_f : string; planeta_docelowa_f : TPlaneta; rakiety_iloœæ_procent_wys³anie_f : real = -1 );
     procedure Rakiety_Lot_Do_Celu( delta_czasu_f : double );
 
-    procedure Walka_Efekt_Utwórz_Jeden( pozycja_rakieta_f : TVector; const id_grupa_f : integer );
+    procedure Walka_Efekt_Utwórz_Jeden( pozycja_rakieta_f : GLS.VectorTypes.TVector4f; const id_grupa_f : integer );
     procedure Walka_Efekt_Zwolnij_Jeden( walka_efekt_f : TWalka_Efekt  );
     procedure Walka_Efekt_Zwolnij_Wszystkie();
 
@@ -362,7 +369,7 @@ type
 
     statystyki_tabela_t : array of array of integer; // Pierwsza wartoœæ oznacza id grupy, kolejne to iloœæ rakiet danej w grupy w momencie pomiaru.
 
-    function Kolor_Grupa_Ustaw( id_grupa_f : integer ) : TVector;
+    function Kolor_Grupa_Ustaw( id_grupa_f : integer ) : GLS.VectorTypes.TVector4f;
   end;
 
 const
@@ -385,6 +392,17 @@ var
 implementation
 
 uses
+  System.DateUtils,
+  System.IOUtils,
+  System.Math,
+  Xml.XMLDoc,
+  Xml.XMLIntf,
+
+  GLS.Color,
+  GLS.Keyboard,
+  GLS.Material,
+  GLS.VectorGeometry,
+
   Statystyki;
 
 {$R *.dfm}
@@ -447,8 +465,8 @@ begin
   Self.pierœcieñ_gl_torus.Scale.Y := 1;
   Self.pierœcieñ_gl_torus.Scale.Z := 0.5;
   Self.pierœcieñ_gl_torus.Material.BlendingMode := bmTransparency;
-  Self.pierœcieñ_gl_torus.Material.FrontProperties.Ambient.Color := clrTransparent;
-  Self.pierœcieñ_gl_torus.Material.FrontProperties.Emission.Color := clrTransparent;
+  Self.pierœcieñ_gl_torus.Material.FrontProperties.Ambient.Color := GLS.Color.clrTransparent;
+  Self.pierœcieñ_gl_torus.Material.FrontProperties.Emission.Color := GLS.Color.clrTransparent;
 
   //Self.VisibleAtRunTime := true; //???
   //Self.ShowAxes := true; //???
@@ -557,16 +575,16 @@ begin
   Self.zaznaczona := zaznaczona_f;
 
   if Self.zaznaczona then
-    Self.planeta_kula_gl_sphere.Material.FrontProperties.Ambient.Color := clrWhite
+    Self.planeta_kula_gl_sphere.Material.FrontProperties.Ambient.Color := GLS.Color.clrWhite
   else//if Self.zaznaczona then
-    Self.planeta_kula_gl_sphere.Material.FrontProperties.Ambient.Color := clrGray20;
+    Self.planeta_kula_gl_sphere.Material.FrontProperties.Ambient.Color := GLS.Color.clrGray20;
 
 end;//---//Funkcja Zaznaczenie_Ustaw().
 
 //Konstruktor klasy TRakieta.
 constructor TRakieta.Create( planeta_f : TPlaneta );
 var
-  zt_vector : TVector;
+  zt_vector : GLS.VectorTypes.TVector4f;
 begin
 
   inherited Create( Application );
@@ -613,7 +631,7 @@ begin
   Self.silnik_g³ówny_gl_cone.Scale.Y := Self.silnik_g³ówny_gl_cone.Scale.Y * 2;
   Self.silnik_g³ówny_gl_cone.PitchAngle := 180;
   Self.silnik_g³ówny_gl_cone.Position.Y := -Self.kad³ub_gl_cone.Height;
-  Self.silnik_g³ówny_gl_cone.Material.FrontProperties.Diffuse.Color := clrWhite;
+  Self.silnik_g³ówny_gl_cone.Material.FrontProperties.Diffuse.Color := GLS.Color.clrWhite;
 
 
   if Self.id_grupa = id_grupa_gracza_c then
@@ -683,11 +701,11 @@ begin
   Self.ResetRotations();
 
   ztr :=
-    RadToDeg( // uses Math.
-        AngleBetweenVectors( // uses GLVectorGeometry.
-           GLVectorGeometry.VectorMake( 1, 0, 0 ),
+    System.Math.RadToDeg(
+        GLS.VectorGeometry.AngleBetweenVectors(
+           GLS.VectorGeometry.VectorMake( 1, 0, 0 ),
            Self.Position.AsVector,
-           GLVectorGeometry.VectorMake( 0, 0, 0 )
+           GLS.VectorGeometry.VectorMake( 0, 0, 0 )
          )
       );
 
@@ -701,7 +719,7 @@ begin
 end;//---//Funkcja Orbita_Kierunek_Ustaw().
 
 //Konstruktor klasy TWalka_Efekt.
-constructor TWalka_Efekt.Create( pozycja_rakieta_f : TVector; const id_grupa_f : integer );
+constructor TWalka_Efekt.Create( pozycja_rakieta_f : GLS.VectorTypes.TVector4f; const id_grupa_f : integer );
 begin
 
   inherited Create( Application );
@@ -713,7 +731,7 @@ begin
   Self.wzrost_kierunek := 1;
   Self.utworzenie_czas := Planety_Form.GLCadencer1.CurrentTime;
 
-  Self.gl_thor_fx_manager := TGLThorFXManager.Create( Self );
+  Self.gl_thor_fx_manager := GLS.ThorFX.TGLThorFXManager.Create( Self );
   Self.gl_thor_fx_manager.Cadencer := Planety_Form.GLCadencer1;
   Self.gl_thor_fx_manager.Core := false;
   //Self.gl_thor_fx_manager.Core := true; //???
@@ -810,19 +828,19 @@ begin
 end;//---//Funkcja Komunikat_Wyœwietl().
 
 //Funkcja Kolor_Grupa_Ustaw().
-function TPlanety_Form.Kolor_Grupa_Ustaw( id_grupa_f : integer ) : TVector;
+function TPlanety_Form.Kolor_Grupa_Ustaw( id_grupa_f : integer ) : GLS.VectorTypes.TVector4f;
 var
   i : integer;
 begin
 
   case id_grupa_f of
-      0 : Result := clrGray80;
-      1 : Result := clrSlateBlue;
-      2 : Result := clrRed;
-      3 : Result := clrOrange;
-      4 : Result := clrPlum;
-      5 : Result := clrOldGold;
-      6 : Result := clrGreenYellow;
+      0 : Result := GLS.Color.clrGray80;
+      1 : Result := GLS.Color.clrSlateBlue;
+      2 : Result := GLS.Color.clrRed;
+      3 : Result := GLS.Color.clrOrange;
+      4 : Result := GLS.Color.clrPlum;
+      5 : Result := GLS.Color.clrOldGold;
+      6 : Result := GLS.Color.clrGreenYellow;
       else//case id_grupa_f of
         begin
 
@@ -840,7 +858,7 @@ begin
 
 
           // Je¿eli pierwszy raz pojawi siê grupa spoza zakresu przygotowanych kolorów wylosuje dla niej nowy kolor.
-          //Result := clrGray80;
+          //Result := GLS.Color.clrGray80;
           Zero_GLSphere.Material.FrontProperties.Ambient.RandomColor(); // Kolory mog¹ byæ zbyt podobne. //???
           Result := Zero_GLSphere.Material.FrontProperties.Ambient.Color;
 
@@ -863,30 +881,30 @@ const
   ruch_c_l : single = 5;
 begin
 
-  if IsKeyDown( VK_NUMPAD8 ) then // uses GLKeyboard.
+  if GLS.Keyboard.IsKeyDown( VK_NUMPAD8 ) then
     Gra_GLCamera.Move( ruch_c_l * delta_czasu_f );
 
-  if IsKeyDown( VK_NUMPAD5 ) then
+  if GLS.Keyboard.IsKeyDown( VK_NUMPAD5 ) then
     Gra_GLCamera.Move( -ruch_c_l * delta_czasu_f );
 
-  if IsKeyDown( VK_NUMPAD4 ) then
+  if GLS.Keyboard.IsKeyDown( VK_NUMPAD4 ) then
     Gra_GLCamera.Slide( -ruch_c_l * delta_czasu_f );
 
-  if IsKeyDown( VK_NUMPAD6 ) then
+  if GLS.Keyboard.IsKeyDown( VK_NUMPAD6 ) then
     Gra_GLCamera.Slide( ruch_c_l * delta_czasu_f );
 
 
-  if IsKeyDown( VK_NUMPAD9 ) then // Góra.
+  if GLS.Keyboard.IsKeyDown( VK_NUMPAD9 ) then // Góra.
     Gra_GLCamera.Lift( ruch_c_l * delta_czasu_f );
 
-  if IsKeyDown( VK_NUMPAD3 ) then // Dó³.
+  if GLS.Keyboard.IsKeyDown( VK_NUMPAD3 ) then // Dó³.
     Gra_GLCamera.Lift( -ruch_c_l * delta_czasu_f );
 
 
-  if IsKeyDown( VK_NUMPAD7 ) then // Beczka w lewo.
+  if GLS.Keyboard.IsKeyDown( VK_NUMPAD7 ) then // Beczka w lewo.
     Gra_GLCamera.Roll( ruch_c_l * delta_czasu_f * 10 );
 
-  if IsKeyDown( VK_NUMPAD1 ) then // Beczka w prawo.
+  if GLS.Keyboard.IsKeyDown( VK_NUMPAD1 ) then // Beczka w prawo.
     Gra_GLCamera.Roll( -ruch_c_l * delta_czasu_f * 10 );
 
 end;//---//Funkcja Kamera_Ruch().
@@ -1015,7 +1033,7 @@ var
   id_planeta_l
     : integer;
   zts : string;
-  zt_xml_document : TXMLDocument; //uses XMLDoc
+  zt_xml_document : Xml.XMLDoc.TXMLDocument;
   zt_planeta : TPlaneta;
 begin//Funkcja Mapa_Utwórz().
 
@@ -1039,8 +1057,8 @@ begin//Funkcja Mapa_Utwórz().
   //---//if not FileExists( zts ) then
 
 
-  zt_xml_document := TXMLDocument.Create( Application );
-  zt_xml_document.Options := zt_xml_document.Options + [ doNodeAutoIndent ]; // Domyœlnie ma: doNodeAutoCreate, doAttrNull, doAutoPrefix, doNamespaceDecl.
+  zt_xml_document := Xml.XMLDoc.TXMLDocument.Create( Application );
+  zt_xml_document.Options := zt_xml_document.Options + [ Xml.XMLIntf.doNodeAutoIndent ]; // Domyœlnie ma: doNodeAutoCreate, doAttrNull, doAutoPrefix, doNamespaceDecl.
 
   if zt_xml_document.Active then
     zt_xml_document.Active := false;
@@ -1057,7 +1075,7 @@ begin//Funkcja Mapa_Utwórz().
     begin
 
       id_planeta_l := 0;
-      GLVectorGeometry.SetVector( kamera_pozycja_pocz¹tkowa_g, 0, 0, 0 );
+      GLS.VectorGeometry.SetVector( kamera_pozycja_pocz¹tkowa_g, 0, 0, 0 );
 
       for i := 0 to zt_xml_document.DocumentElement.ChildNodes.Count - 1 do
         begin
@@ -1272,7 +1290,7 @@ var
   j,
   zti
     : integer;
-  zt_vector : TVector;
+  zt_vector : GLS.VectorTypes.TVector4f;
 
   planeta_iloœæ_rakiet_r_l_t : array of TPlaneta_Iloœæ_Rakiet_r_l;
 begin
@@ -1328,7 +1346,7 @@ begin
          //planeta_iloœæ_rakiet_r_l_t[ zti ].rakiety_iloœæ := Ceil( planeta_iloœæ_rakiet_r_l_t[ zti ].rakiety_iloœæ * 0.5 );
 
          if planeta_iloœæ_rakiet_r_l_t[ zti ].rakiety_iloœæ > 1 then
-          planeta_iloœæ_rakiet_r_l_t[ zti ].rakiety_iloœæ := Floor( planeta_iloœæ_rakiet_r_l_t[ zti ].rakiety_iloœæ * rakiety_iloœæ_procent_wys³anie_f );
+          planeta_iloœæ_rakiet_r_l_t[ zti ].rakiety_iloœæ := System.Math.Floor( planeta_iloœæ_rakiet_r_l_t[ zti ].rakiety_iloœæ * rakiety_iloœæ_procent_wys³anie_f );
 
       end;
     //---//if Gra_Obiekty_GLDummyCube.Children[ i ] is TPlaneta then
@@ -1390,7 +1408,7 @@ end;//---//Funkcja Rakiety_Cel_Ustaw().
 procedure TPlanety_Form.Rakiety_Lot_Do_Celu( delta_czasu_f : double );
 var
   i : integer;
-  zt_vector : TVector;
+  zt_vector : GLS.VectorTypes.TVector4f;
 begin
 
   if   ( rakiety_list = nil )
@@ -1441,7 +1459,7 @@ begin
 end;//---//Funkcja Rakiety_Lot_Do_Celu().
 
 //Funkcja Walka_Efekt_Utwórz_Jeden().
-procedure TPlanety_Form.Walka_Efekt_Utwórz_Jeden( pozycja_rakieta_f : TVector; const id_grupa_f : integer );
+procedure TPlanety_Form.Walka_Efekt_Utwórz_Jeden( pozycja_rakieta_f : GLS.VectorTypes.TVector4f; const id_grupa_f : integer );
 var
   zt_walka_efekt : TWalka_Efekt;
 begin
@@ -1953,7 +1971,7 @@ var
   decyzje_gracza_zapamiêtuj_obliczenia : boolean; // Obliczenia s¹ przeprowadzane tylko dla potrzeb zapamiêtania konfiguracji mapy gdy gracz wykonywa³ ruch.
 
   //Funkcja SI_Planeta_Decyduj() w SI_Decyduj().
-  procedure SI_Planeta_Decyduj( const planeta_f : TPlaneta; const œrodek_geometryczny_planet_w_grupie_f : TVector; const planety_posiadane_procent_f : real; const fann_decyduje_f : boolean; const rakiety_iloœæ_w_grupie_f : integer = -1; id_planeta_z_s_f : string = '' );
+  procedure SI_Planeta_Decyduj( const planeta_f : TPlaneta; const œrodek_geometryczny_planet_w_grupie_f : GLS.VectorTypes.TVector4f; const planety_posiadane_procent_f : real; const fann_decyduje_f : boolean; const rakiety_iloœæ_w_grupie_f : integer = -1; id_planeta_z_s_f : string = '' );
   type
     TSI_Decyzja_r = record
       id_grupa,
@@ -2433,7 +2451,7 @@ var
   planety_posiadane_procent : real; // Jaki procent wszystkich planet posiada grupa.
   id_planeta_z_s // Wszystkie planety, z których grupa wysy³a (mo¿e wys³aæ) rakiety.
     : string;
-  œrodek_geometryczny_planet_w_grupie : TVector;
+  œrodek_geometryczny_planet_w_grupie : GLS.VectorTypes.TVector4f;
 begin//Funkcja SI_Decyduj().
 
   // Decyduje o ruchach SI.
@@ -2512,7 +2530,7 @@ begin//Funkcja SI_Decyduj().
             planety_posiadane_procent := 0;
 
 
-          zti := Floor( planety_posiadane_procent * 0.1 ); // Im wiêcej planet (procentowo) ma grupa tym czêœciej planety decyduj¹ niezale¿nie aby zamiast wysy³aæ jednej du¿ej floty powstawa³y mniejsze floty.
+          zti := System.Math.Floor( planety_posiadane_procent * 0.1 ); // Im wiêcej planet (procentowo) ma grupa tym czêœciej planety decyduj¹ niezale¿nie aby zamiast wysy³aæ jednej du¿ej floty powstawa³y mniejsze floty.
 
           if zti >= 7 then
             zti := 6;
@@ -2526,7 +2544,7 @@ begin//Funkcja SI_Decyduj().
 
               planeta_indeks := -99;
 
-              œrodek_geometryczny_planet_w_grupie := GLVectorGeometry.VectorMake( 0, 0, 0 );
+              œrodek_geometryczny_planet_w_grupie := GLS.VectorGeometry.VectorMake( 0, 0, 0 );
               //planety_iloœæ_w_grupie := 0;
               rakiety_iloœæ_w_grupie := 0;
               id_planeta_z_s := '';
@@ -2606,7 +2624,7 @@ begin//Funkcja SI_Decyduj().
               if planety_iloœæ_w_grupie <> 0 then
                 begin
 
-                  GLVectorGeometry.ScaleVector( œrodek_geometryczny_planet_w_grupie, 1 / planety_iloœæ_w_grupie );
+                  GLS.VectorGeometry.ScaleVector( œrodek_geometryczny_planet_w_grupie, 1 / planety_iloœæ_w_grupie );
 
                 end;
               //---//if planety_iloœæ_w_grupie <> 0 then
@@ -2647,7 +2665,7 @@ end;//---//Funkcja SI_Decyduj().
 procedure TPlanety_Form.SI_Decyduj__Modyfikator_Losowy_Ustaw();
 begin
 
-  si_decyduj__cykl_sekundy__modyfikator_losowy_g := Floor( si_decyduj__cykl_sekundy_g * 0.5 );
+  si_decyduj__cykl_sekundy__modyfikator_losowy_g := System.Math.Floor( si_decyduj__cykl_sekundy_g * 0.5 );
 
   si_decyduj__cykl_sekundy__modyfikator_losowy_g := si_decyduj__cykl_sekundy__modyfikator_losowy_g - Random( si_decyduj__cykl_sekundy__modyfikator_losowy_g * 2 + 1 );
 
@@ -3368,7 +3386,7 @@ begin//Funkcja FANN_Przygotuj().
 
             try
               ztr := StrToFloat( wartoœæ );
-              fann_nauka_r.linijka_planeta_dane := Floor( ztr ) > 0;
+              fann_nauka_r.linijka_planeta_dane := System.Math.Floor( ztr ) > 0;
             except
               fann_nauka_r.linijka_planeta_dane := false;
               Continue;
@@ -3393,7 +3411,7 @@ begin//Funkcja FANN_Przygotuj().
             end;
             //---//try
 
-            fann_nauka_r.planeta_docelowa__id_planeta := Floor( ztr ); // 0 - nie, 1 - tak.
+            fann_nauka_r.planeta_docelowa__id_planeta := System.Math.Floor( ztr ); // 0 - nie, 1 - tak.
 
 
             zti := Pos( ';', linijka );
@@ -3411,7 +3429,7 @@ begin//Funkcja FANN_Przygotuj().
             end;
             //---//try
 
-            fann_nauka_r.planeta_nale¿y_do_gracza := Floor( ztr ); // 0 - nie, 1 - tak.
+            fann_nauka_r.planeta_nale¿y_do_gracza := System.Math.Floor( ztr ); // 0 - nie, 1 - tak.
 
 
             zti := Pos( ';', linijka );
@@ -3447,7 +3465,7 @@ begin//Funkcja FANN_Przygotuj().
             end;
             //---//try
 
-            fann_nauka_r.grupa_zdobywaj¹ca_planetê := Floor( ztr ); // (0 - nikt nie zdobywa planety, 1 - gracz zdobywa planetê, 2 - planetê zdobywa grupa nie gracza).
+            fann_nauka_r.grupa_zdobywaj¹ca_planetê := System.Math.Floor( ztr ); // (0 - nikt nie zdobywa planety, 1 - gracz zdobywa planetê, 2 - planetê zdobywa grupa nie gracza).
 
 
             zti := Pos( ';', linijka );
@@ -3483,7 +3501,7 @@ begin//Funkcja FANN_Przygotuj().
             end;
             //---//try
 
-            fann_nauka_r.planety_iloœæ_mapa := Floor( ztr );
+            fann_nauka_r.planety_iloœæ_mapa := System.Math.Floor( ztr );
 
 
             zti := Pos( ';', linijka );
@@ -3555,7 +3573,7 @@ begin//Funkcja FANN_Przygotuj().
             end;
             //---//try
 
-            fann_nauka_r.rakiety_iloœæ_procent_wys³anie := Floor( ztr );
+            fann_nauka_r.rakiety_iloœæ_procent_wys³anie := System.Math.Floor( ztr );
 
 
             zti := Pos( ';', linijka );
@@ -3573,7 +3591,7 @@ begin//Funkcja FANN_Przygotuj().
             end;
             //---//try
 
-            fann_nauka_r.rakiety_na_orbicie_iloœæ__obce := Floor( ztr );
+            fann_nauka_r.rakiety_na_orbicie_iloœæ__obce := System.Math.Floor( ztr );
 
 
             zti := Pos( ';', linijka );
@@ -3591,7 +3609,7 @@ begin//Funkcja FANN_Przygotuj().
             end;
             //---//try
 
-            fann_nauka_r.rakiety_na_orbicie_iloœæ__w³asne := Floor( ztr );
+            fann_nauka_r.rakiety_na_orbicie_iloœæ__w³asne := System.Math.Floor( ztr );
 
 
             zti := Pos( ';', linijka );
@@ -3796,7 +3814,7 @@ begin
   zaznaczanie_ruchem_myszy__opóŸnienie_data_czas := Now();
   zaznaczanie_ruchem_myszy__opóŸnienie__zaznacze_data_czas := zaznaczanie_ruchem_myszy__opóŸnienie_data_czas;
 
-  GLVectorGeometry.SetVector( kamera_pozycja_pocz¹tkowa_g, 0, 0, 0 );
+  GLS.VectorGeometry.SetVector( kamera_pozycja_pocz¹tkowa_g, 0, 0, 0 );
 
 
   Gra_GLSceneViewer.Align := alClient;
@@ -4095,15 +4113,15 @@ var
   i : integer;
 begin
 
-  if IsKeyDown( VK_ESCAPE ) then
+  if GLS.Keyboard.IsKeyDown( VK_ESCAPE ) then
     Close();
 
-  if IsKeyDown( VK_DECIMAL ) then
+  if GLS.Keyboard.IsKeyDown( VK_DECIMAL ) then
     GLUserInterface1.MouseLookActive := not GLUserInterface1.MouseLookActive;
 
 
-  //if IsKeyDown( VK_RETURN ) then
-  if IsKeyDown( 'E' ) then
+  //if GLS.Keyboard.IsKeyDown( VK_RETURN ) then
+  if GLS.Keyboard.IsKeyDown( 'E' ) then
     begin
 
       // Pe³ny ekran.
@@ -4146,28 +4164,28 @@ begin
       //---//if Planety_Form.BorderStyle <> bsNone then
 
     end;
-  //---//if IsKeyDown( EM' ) then
+  //---//if GLS.Keyboard.IsKeyDown( EM' ) then
 
 
-  if   (  IsKeyDown( 'P' )  ) // Pauza podczas wy³¹czania przeskakuje widokiem kamery gdy obracanie mysz¹ jest w³¹czone.
-    or (  IsKeyDown( VK_PAUSE )  ) then
+  if   (  GLS.Keyboard.IsKeyDown( 'P' )  ) // Pauza podczas wy³¹czania przeskakuje widokiem kamery gdy obracanie mysz¹ jest w³¹czone.
+    or (  GLS.Keyboard.IsKeyDown( VK_PAUSE )  ) then
     Pauza_ButtonClick( Sender );
 
 
-  if IsKeyDown( 'I' ) then
+  if GLS.Keyboard.IsKeyDown( 'I' ) then
     Statystyki_ButtonClick( Sender );
 
 
-  if IsKeyDown( '/' ) then
+  if GLS.Keyboard.IsKeyDown( '/' ) then
     Pomoc_BitBtnClick( Sender );
 
 
-  if IsKeyDown( VK_F1 ) then
+  if GLS.Keyboard.IsKeyDown( VK_F1 ) then
     Ruch_Ostatni_Ponów_ButtonClick( Sender );
 
 
-  if    (  IsKeyDown( VK_F2 )  )
-    and (  IsKeyDown( VK_SHIFT )  )
+  if    (  GLS.Keyboard.IsKeyDown( VK_F2 )  )
+    and (  GLS.Keyboard.IsKeyDown( VK_SHIFT )  )
     and (  Trim( ostatni_ruch_ponów__id_planeta_z__1 ) <> '' ) then
     begin
 
@@ -4177,12 +4195,12 @@ begin
       Informacja_Wyœwietl( 'Zapamiêtano ruch (F2).' );
 
     end
-  else//if    (  IsKeyDown( VK_F2 )  ) (...)
-    if IsKeyDown( VK_F2 ) then
+  else//if    (  GLS.Keyboard.IsKeyDown( VK_F2 )  ) (...)
+    if GLS.Keyboard.IsKeyDown( VK_F2 ) then
       Rakiety_Cel_Ustaw( id_grupa_gracza_c, ostatni_ruch_ponów__id_planeta_z__2, ostatni_ruch_ponów__planeta_docelowa__2 );
 
-  if    (  IsKeyDown( VK_F3 )  )
-    and (  IsKeyDown( VK_SHIFT )  )
+  if    (  GLS.Keyboard.IsKeyDown( VK_F3 )  )
+    and (  GLS.Keyboard.IsKeyDown( VK_SHIFT )  )
     and (  Trim( ostatni_ruch_ponów__id_planeta_z__1 ) <> '' ) then
     begin
 
@@ -4192,12 +4210,12 @@ begin
       Informacja_Wyœwietl( 'Zapamiêtano ruch (F3).' );
 
     end
-  else//if    (  IsKeyDown( VK_F3 )  ) (...)
-    if IsKeyDown( VK_F3 ) then
+  else//if    (  GLS.Keyboard.IsKeyDown( VK_F3 )  ) (...)
+    if GLS.Keyboard.IsKeyDown( VK_F3 ) then
       Rakiety_Cel_Ustaw( id_grupa_gracza_c, ostatni_ruch_ponów__id_planeta_z__3, ostatni_ruch_ponów__planeta_docelowa__3 );
 
-  if    (  IsKeyDown( VK_F4 )  )
-    and (  IsKeyDown( VK_SHIFT )  )
+  if    (  GLS.Keyboard.IsKeyDown( VK_F4 )  )
+    and (  GLS.Keyboard.IsKeyDown( VK_SHIFT )  )
     and (  Trim( ostatni_ruch_ponów__id_planeta_z__1 ) <> '' ) then
     begin
 
@@ -4207,12 +4225,12 @@ begin
       Informacja_Wyœwietl( 'Zapamiêtano ruch (F4).' );
 
     end
-  else//if    (  IsKeyDown( VK_F4 )  ) (...)
-    if IsKeyDown( VK_F4 ) then
+  else//if    (  GLS.Keyboard.IsKeyDown( VK_F4 )  ) (...)
+    if GLS.Keyboard.IsKeyDown( VK_F4 ) then
       Rakiety_Cel_Ustaw( id_grupa_gracza_c, ostatni_ruch_ponów__id_planeta_z__4, ostatni_ruch_ponów__planeta_docelowa__4 );
 
 
-  if IsKeyDown( VK_F11 ) then
+  if GLS.Keyboard.IsKeyDown( VK_F11 ) then
     begin
 
       if PageControl1.Width <> 200 then
@@ -4224,9 +4242,9 @@ begin
         Opcje_Splitter.Visible := true;
 
     end;
-  //---//if IsKeyDown( VK_F12 ) then
+  //---//if GLS.Keyboard.IsKeyDown( VK_F12 ) then
 
-  if IsKeyDown( VK_F12 ) then
+  if GLS.Keyboard.IsKeyDown( VK_F12 ) then
     begin
 
       if PageControl1.Width <> 200 then
@@ -4237,7 +4255,7 @@ begin
       Opcje_Splitter.Visible := PageControl1.Width > 0;
 
     end;
-  //---//if IsKeyDown( VK_F12 ) then
+  //---//if GLS.Keyboard.IsKeyDown( VK_F12 ) then
 
 
   if not GLCadencer1.Enabled then // Gdy pauza jest aktywna.
@@ -4247,8 +4265,8 @@ begin
   if Start_Stop_Button.Tag = 1 then // Gdy nie ma aktywnej gry nie mo¿na wydawaæ poleceñ zwi¹zanych z rozgrywk¹. //???
     begin
 
-      if    (  IsKeyDown( 'A' )  )
-        and (  IsKeyDown( VK_CONTROL )  ) then // Zaznacza planety gracza i planety, na których orbitach s¹ rakiety gracza.
+      if    (  GLS.Keyboard.IsKeyDown( 'A' )  )
+        and (  GLS.Keyboard.IsKeyDown( VK_CONTROL )  ) then // Zaznacza planety gracza i planety, na których orbitach s¹ rakiety gracza.
         begin
 
           for i := 0 to Gra_Obiekty_GLDummyCube.Count - 1 do
@@ -4258,15 +4276,15 @@ begin
               TPlaneta(Gra_Obiekty_GLDummyCube.Children[ i ]).Zaznaczenie_Ustaw( true );
 
         end
-      else//if    (  IsKeyDown( 'A' )  ) (...)
-        if IsKeyDown( 'A' ) then // Zaznacza planety gracza.
+      else//if    (  GLS.Keyboard.IsKeyDown( 'A' )  ) (...)
+        if GLS.Keyboard.IsKeyDown( 'A' ) then // Zaznacza planety gracza.
           for i := 0 to Gra_Obiekty_GLDummyCube.Count - 1 do
             if    ( Gra_Obiekty_GLDummyCube.Children[ i ] is TPlaneta )
               and ( not TPlaneta(Gra_Obiekty_GLDummyCube.Children[ i ]).zaznaczona )
               and ( TPlaneta(Gra_Obiekty_GLDummyCube.Children[ i ]).id_grupa = id_grupa_gracza_c ) then
               TPlaneta(Gra_Obiekty_GLDummyCube.Children[ i ]).Zaznaczenie_Ustaw( true );
 
-      if IsKeyDown( 'X' ) then
+      if GLS.Keyboard.IsKeyDown( 'X' ) then
         for i := 0 to Gra_Obiekty_GLDummyCube.Count - 1 do
           if    ( Gra_Obiekty_GLDummyCube.Children[ i ] is TPlaneta )
             and ( TPlaneta(Gra_Obiekty_GLDummyCube.Children[ i ]).zaznaczona ) then
@@ -4276,47 +4294,47 @@ begin
   //---//if Start_Stop_Button.Tag = 1 then
 
 
-  if IsKeyDown( '1' ) then
+  if GLS.Keyboard.IsKeyDown( '1' ) then
     Rakiety_Iloœæ_Procent_Wys³anie_SpinEdit.Value := 10;
 
-  if IsKeyDown( '2' ) then
+  if GLS.Keyboard.IsKeyDown( '2' ) then
     Rakiety_Iloœæ_Procent_Wys³anie_SpinEdit.Value := 20;
 
-  if IsKeyDown( '3' ) then
+  if GLS.Keyboard.IsKeyDown( '3' ) then
     Rakiety_Iloœæ_Procent_Wys³anie_SpinEdit.Value := 30;
 
-  if IsKeyDown( '4' ) then
+  if GLS.Keyboard.IsKeyDown( '4' ) then
     Rakiety_Iloœæ_Procent_Wys³anie_SpinEdit.Value := 40;
 
-  if IsKeyDown( '5' ) then
+  if GLS.Keyboard.IsKeyDown( '5' ) then
     Rakiety_Iloœæ_Procent_Wys³anie_SpinEdit.Value := 50;
 
-  if IsKeyDown( '6' ) then
+  if GLS.Keyboard.IsKeyDown( '6' ) then
     Rakiety_Iloœæ_Procent_Wys³anie_SpinEdit.Value := 60;
 
-  if IsKeyDown( '7' ) then
+  if GLS.Keyboard.IsKeyDown( '7' ) then
     Rakiety_Iloœæ_Procent_Wys³anie_SpinEdit.Value := 70;
 
-  if IsKeyDown( '8' ) then
+  if GLS.Keyboard.IsKeyDown( '8' ) then
     Rakiety_Iloœæ_Procent_Wys³anie_SpinEdit.Value := 80;
 
-  if IsKeyDown( '9' ) then
+  if GLS.Keyboard.IsKeyDown( '9' ) then
     Rakiety_Iloœæ_Procent_Wys³anie_SpinEdit.Value := 90;
 
-  if IsKeyDown( '0' ) then
+  if GLS.Keyboard.IsKeyDown( '0' ) then
     Rakiety_Iloœæ_Procent_Wys³anie_SpinEdit.Value := 100;
 
 
-  if IsKeyDown( 'Q' ) then
+  if GLS.Keyboard.IsKeyDown( 'Q' ) then
     if Rakiety_Iloœæ_Procent_Wys³anie_SpinEdit.Value = 100 then
       Rakiety_Iloœæ_Procent_Wys³anie_SpinEdit.Value := 50
     else//if Rakiety_Iloœæ_Procent_Wys³anie_SpinEdit.Value = 100 then
       Rakiety_Iloœæ_Procent_Wys³anie_SpinEdit.Value := 100;
 
 
-  //if   (  IsKeyDown( 'K' )  )
-  //  or (  IsKeyDown( VK_NUMPAD2 )  ) then
-  if IsKeyDown( 'K' ) then
+  //if   (  GLS.Keyboard.IsKeyDown( 'K' )  )
+  //  or (  GLS.Keyboard.IsKeyDown( VK_NUMPAD2 )  ) then
+  if GLS.Keyboard.IsKeyDown( 'K' ) then
     begin
 
       Gra_GLCamera.ResetRotations();
@@ -4327,18 +4345,18 @@ begin
       Gra_GLCamera.Position.AsVector := kamera_pozycja_pocz¹tkowa_g;
 
     end;
-  //---//if IsKeyDown( 'K' ) then
+  //---//if GLS.Keyboard.IsKeyDown( 'K' ) then
 
 
-  if    (  IsKeyDown( VK_ADD )  )
+  if    (  GLS.Keyboard.IsKeyDown( VK_ADD )  )
     and ( Gra_Prêdkoœæ_SpinEdit.Value <= Gra_Prêdkoœæ_SpinEdit.MaxValue - Gra_Prêdkoœæ_SpinEdit.Increment ) then
     Gra_Prêdkoœæ_SpinEdit.Value := Gra_Prêdkoœæ_SpinEdit.Value + Gra_Prêdkoœæ_SpinEdit.Increment;
 
-  if    (  IsKeyDown( VK_SUBTRACT )  )
+  if    (  GLS.Keyboard.IsKeyDown( VK_SUBTRACT )  )
     and ( Gra_Prêdkoœæ_SpinEdit.Value >= Gra_Prêdkoœæ_SpinEdit.MinValue + Gra_Prêdkoœæ_SpinEdit.Increment ) then
     Gra_Prêdkoœæ_SpinEdit.Value := Gra_Prêdkoœæ_SpinEdit.Value - Gra_Prêdkoœæ_SpinEdit.Increment;
 
-  if IsKeyDown( VK_MULTIPLY ) then
+  if GLS.Keyboard.IsKeyDown( VK_MULTIPLY ) then
     Gra_Prêdkoœæ_SpinEdit.Value := 100;
 
 end;//---//Gra_GLSceneViewerKeyDown().
@@ -4552,8 +4570,8 @@ procedure TPlanety_Form.Gra_GLSceneViewerMouseMove( Sender: TObject; Shift: TShi
 begin
 
    if    ( ssRight in Shift )
-     and ( MilliSecondsBetween( Now(), zaznaczanie_ruchem_myszy__opóŸnienie_data_czas ) > 300 )
-     and ( MilliSecondsBetween( Now(), zaznaczanie_ruchem_myszy__opóŸnienie__zaznacze_data_czas ) > 1000 ) then
+     and ( System.DateUtils.MilliSecondsBetween( Now(), zaznaczanie_ruchem_myszy__opóŸnienie_data_czas ) > 300 )
+     and ( System.DateUtils.MilliSecondsBetween( Now(), zaznaczanie_ruchem_myszy__opóŸnienie__zaznacze_data_czas ) > 1000 ) then
      begin
 
        Gra_GLSceneViewerMouseDown( Sender, TMouseButton.mbRight, Shift, X, Y );
@@ -4844,7 +4862,7 @@ begin
       if GLSkyDome1.Bands.Count > 1 then
         begin
 
-          GLSkyDome1.Bands[ 0 ].StartColor.Color := clrGray40;
+          GLSkyDome1.Bands[ 0 ].StartColor.Color := GLS.Color.clrGray40;
           GLSkyDome1.Bands[ 0 ].StopColor.Color := GLSkyDome1.Bands[ 0 ].StartColor.Color;
           GLSkyDome1.Bands[ 1 ].StartColor.Color := GLSkyDome1.Bands[ 0 ].StartColor.Color;
           GLSkyDome1.Bands[ 1 ].StopColor.Color := GLSkyDome1.Bands[ 0 ].StartColor.Color;
@@ -4861,7 +4879,7 @@ begin
       if GLSkyDome1.Bands.Count > 1 then
         begin
 
-          GLSkyDome1.Bands[ 0 ].StartColor.Color := clrBlack;
+          GLSkyDome1.Bands[ 0 ].StartColor.Color := GLS.Color.clrBlack;
           GLSkyDome1.Bands[ 0 ].StopColor.Color := GLSkyDome1.Bands[ 0 ].StartColor.Color;
           GLSkyDome1.Bands[ 1 ].StartColor.Color := GLSkyDome1.Bands[ 0 ].StartColor.Color;
           GLSkyDome1.Bands[ 1 ].StopColor.Color := GLSkyDome1.Bands[ 0 ].StartColor.Color;

@@ -1,5 +1,6 @@
 Planety z Eris Kallisti Dyskordia
-wersja 2021.10.26.
+wydanie 2.0.0.0
+wersja 2024.01.08.
 
 MIT License
 

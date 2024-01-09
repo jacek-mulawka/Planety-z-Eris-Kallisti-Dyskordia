@@ -55,8 +55,9 @@
         <UWP_DelphiLogo150>$(BDS)\bin\Artwork\Windows\UWP\delphi_UwpDefault_150.png</UWP_DelphiLogo150>
         <SanitizedProjectName>Planety_pr</SanitizedProjectName>
         <VerInfo_Locale>1045</VerInfo_Locale>
-        <VerInfo_Keys>CompanyName=Jacek Mulawka;FileDescription=Planety z Eris Kallisti Dyskordia. MIT License.;FileVersion=1.0.0.0;InternalName=;LegalCopyright=Copyright (c) 2021 Jacek Mulawka;LegalTrademarks=;OriginalFilename=Planety z Eris Kallisti Dyskordia;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=Planety z Eris Kallisti Dyskordia;ProductVersion=2021.10.26;Comments=j.mulawka@interia.pl https://github.com/jacek-mulawka</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=Jacek Mulawka;FileDescription=Planety z Eris Kallisti Dyskordia. MIT License.;FileVersion=2.0.0.0;InternalName=;LegalCopyright=Copyright (c) 2021 Jacek Mulawka;LegalTrademarks=;OriginalFilename=Planety z Eris Kallisti Dyskordia;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=Planety z Eris Kallisti Dyskordia;ProductVersion=2024.1.8;Comments=j.mulawka@interia.pl https://github.com/jacek-mulawka</VerInfo_Keys>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <VerInfo_MajorVer>2</VerInfo_MajorVer>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <DCC_UsePackage>JvCustom;vcl;GLScene_Parallel_RT;vclactnband;JvXPCtrls;IndySystem;tethering;svnui;JvGlobus;JvPluginSystem;JvMM;vclimg;GLScene_RT;Jcl;vcltouch;JvCore;JvBands;vcldb;bindcompfmx;svn;JvCrypt;JvNet;JvJans;GLScene_Sounds_RT;JvAppFrm;JvDlgs;JvRuntimeDesign;GLScene_Cg_RT;JvManagedThreads;fmx;xmlrtl;JvTimeFramework;vclwinx;GLScene_Physics_RT;rtl;JvWizards;CustomIPTransport;vcldsnap;IndyCore;JvSystem;JvStdCtrls;vclx;bindcomp;appanalytics;dsnap;JvPageComps;bindcompvcl;JvPascalInterpreter;JvDocking;VclSmp;JclDeveloperTools;JclVcl;vclie;bindengine;JvCmp;JvHMI;dbrtl;IndyProtocols;JvControls;JvPrintPreview;JclContainers;$(DCC_UsePackage)</DCC_UsePackage>

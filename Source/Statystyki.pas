@@ -4,8 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Menus,
-  System.DateUtils, System.Math, Vcl.Buttons;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Menus, Vcl.Buttons;
 
 type
   TStatystyki_Form = class( TForm )
@@ -42,6 +41,9 @@ var
 implementation
 
 uses
+  System.DateUtils,
+  System.Math,
+
   Planety;
 
 {$R *.dfm}
@@ -70,7 +72,7 @@ begin
 
       Self.Tag := 1;
 
-      data_czas_zmiany_okna := IncHour( data_czas_zmiany_okna, -1 );
+      data_czas_zmiany_okna := System.DateUtils.IncHour( data_czas_zmiany_okna, -1 );
 
       Odœwie¿anie_TimerTimer( Sender );
 
@@ -105,8 +107,8 @@ var
   kolor_grupy : TColor;
 begin
 
-  //if SecondsBetween( Now(), data_czas_zmiany_okna ) < 1 then
-  if MilliSecondsBetween( Now(), data_czas_zmiany_okna ) < Odœwie¿anie_Timer.Interval then
+  //if System.DateUtils.SecondsBetween( Now(), data_czas_zmiany_okna ) < 1 then
+  if System.DateUtils.MilliSecondsBetween( Now(), data_czas_zmiany_okna ) < Odœwie¿anie_Timer.Interval then
     Exit;
 
   Odœwie¿anie_Timer.Enabled := false;
@@ -162,7 +164,7 @@ begin
 
   // Ile bloków zmieœci siê na wykresie.
   if blok_szerokoœæ <> 0 then
-    i := Floor( Statystyki_Image.Width / blok_szerokoœæ )
+    i := System.Math.Floor( Statystyki_Image.Width / blok_szerokoœæ )
   else//if blok_szerokoœæ <> 0 then
     i := 1;
 
@@ -174,7 +176,7 @@ begin
 
       // Nie wszystkie bloki danych zmieszcz¹ siê na wykresie.
 
-      zti := Floor( bloki_iloœæ_na_wykresie / i );
+      zti := System.Math.Floor( bloki_iloœæ_na_wykresie / i );
 
     end;
   //---//if bloki_iloœæ_na_wykresie <= i then
@@ -232,7 +234,7 @@ begin
 
                     Statystyki_Image.Canvas.Brush.Color := kolor_grupy;
 
-                    Statystyki_Image.Canvas.Rectangle( wykres_s³upek__x, Statystyki_Image.Height - 10, wykres_s³upek__x + wykres_s³upek__szerokoœæ_l_c, Statystyki_Image.Height - 10 - Floor( Planety_Form.statystyki_tabela_t[ i ][ j ] * wykres_skalowanie_do_wysokoœci )  ); // % wzgldem najwiekszego pomiaru i wysokoœci rysowania //???
+                    Statystyki_Image.Canvas.Rectangle( wykres_s³upek__x, Statystyki_Image.Height - 10, wykres_s³upek__x + wykres_s³upek__szerokoœæ_l_c, Statystyki_Image.Height - 10 - System.Math.Floor( Planety_Form.statystyki_tabela_t[ i ][ j ] * wykres_skalowanie_do_wysokoœci )  ); // % wzgldem najwiekszego pomiaru i wysokoœci rysowania //???
 
 
                     wykres_s³upek__x := wykres_s³upek__x + blok_szerokoœæ;
@@ -256,7 +258,7 @@ begin
                   Statystyki_Image.Canvas.Pen.Width := 3;
                   Statystyki_Image.Canvas.Brush.Color := clWhite;
 
-                  Statystyki_Image.Canvas.LineTo(   10 + Floor(  ( j - 0 ) * wykres_liniowy_skalowanie_do_szerokoœci  ), Statystyki_Image.Height - 10 - Floor( Planety_Form.statystyki_tabela_t[ i ][ j ] * wykres_skalowanie_do_wysokoœci )   );
+                  Statystyki_Image.Canvas.LineTo(   10 + System.Math.Floor(  ( j - 0 ) * wykres_liniowy_skalowanie_do_szerokoœci  ), Statystyki_Image.Height - 10 - System.Math.Floor( Planety_Form.statystyki_tabela_t[ i ][ j ] * wykres_skalowanie_do_wysokoœci )   );
 
                   Statystyki_Image.Canvas.Pen.Color := clWhite;
                   Statystyki_Image.Canvas.Pen.Width := 1;
